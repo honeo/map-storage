@@ -1,0 +1,19 @@
+{
+  "name": "map-storage",
+  "version": "1.0.0",
+  "description": "拡張機能storageをMap APIで扱う",
+  "main": "index.js",
+  "scripts": {},
+  "author": "honeo",
+  "license": "MIT",
+  "directories": {
+    "test": "test"
+  },
+  "keywords": [
+    "map",
+    "chrome",
+    "extension",
+    "web extensions",
+    "storage"
+  ]
+}
