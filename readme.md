@@ -41,7 +41,7 @@ ChromeExtensionsでは別途[mozilla/webextension-polyfill](https://github.com/m
 ```
 ```js
 // example: CDN, Dynamic import
-const MapStorage = await import('https://cdn.rawgit.com/honeo/map-storage/master/map-storage.js').then( (mod)=>{
+const MapStorage = await import('https://cdn.rawgit.com/honeo/map-storage/master/map-storage.mjs').then( (mod)=>{
 	return mod.default;
 });
 ```
