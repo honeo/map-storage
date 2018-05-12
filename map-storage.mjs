@@ -1,10 +1,8 @@
 /*
-	通常版
+	ESM版
+		衝突回避のための即時関数ラップなし
 */
 
-
-// 衝突回避
-const MapStorage = (function(){
 
 /*
 	Var
@@ -185,5 +183,4 @@ function save(instance){
 	}, 0);
 }
 
-return MapStorage;
-}()); // 衝突回避
+export default MapStorage;

@@ -4,7 +4,7 @@
 
 
 ## なにこれ
-WebExtensionsのStorageをMap APIで扱う。  
+WebExtensionsのstorageをMap APIで扱う。  
 自動で永続化する。  
 
 
@@ -38,6 +38,12 @@ ChromeExtensionsでは別途[mozilla/webextension-polyfill](https://github.com/m
 <!-- example: background.html -->
 <script src="./map-storage.js"></script>
 <script src="./background.js"></script>
+```
+```js
+// example: CDN, Dynamic import
+const MapStorage = await import('https://cdn.rawgit.com/honeo/map-storage/master/map-storage.js').then( (mod)=>{
+	return mod.default;
+});
 ```
 global.MapStorageから扱う。
 ```js
