@@ -82,3 +82,10 @@ Storage実体の使用量を数値で取得する。
 ```js
 const number = await mapstorage.bytes();
 ```
+
+
+### MapStorage#lastModified
+最終更新時のDateインスタンス。
+```js
+mapstorage.lastModified; // date
+```

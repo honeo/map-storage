@@ -11,10 +11,12 @@ const MapStorage = (function(){
 
 		_method: Map#methodへの参照
 		options_default: 標準設定
-		weakmap: {
-			name: "instance名",
-			saved: boolean, 変更後に実体へ書込み済みか
-			type: string, browser.storage.type
+		weakmap {
+			...MapStorageインスタンス: {
+				name: "instance名",
+				saved: boolean, 変更後に実体へ書込み済みか
+				type: string, browser.storage.type
+			}
 		}
 */
 const _clear = Map.prototype.clear;
@@ -54,15 +56,17 @@ class MapStorage extends Map {
 		return browser.storage[type].get({
 			[name]: []
 		}).then( async (obj)=>{
-			if( !Array.isArray(obj[name]) ){
-				throw new TypeError(`Invalid data: storage.${type}.${name}`);
-			}
+			// storageから読み込み、配列ならv~1.0.1までの仕様なら変換してから渡す
+			const {contents, lastModified} = Array.isArray(obj[name]) ?
+				legacyConvert(obj[name]):
+				obj[name];
 			// super()による初期化（new Map(iterable)相当）だとMapStorage#setが使われてしまうため
-			obj[name].forEach( ([key, value])=>{
+			contents.forEach( ([key, value])=>{
 				Map.prototype.set.call(this, key, value);
 			});
 			// configObject
 			weakmap.set(this, {
+				lastModified,
 				name,
 				saved: true,
 				type
@@ -82,7 +86,7 @@ class MapStorage extends Map {
 
 	/*
 		本来のMap#clear()との違い
-			自身と対になるstorageを初期化する。
+			自身と対になるstorage実体も初期化する。
 	*/
 	clear(){
 		_clear.call(this);
@@ -160,6 +164,15 @@ class MapStorage extends Map {
 		const config = weakmap.get(this);
 		return browser.storage[config.type].getBytesInUse(config.name);
 	}
+
+
+	/*
+		最終更新時のDateインスタンスを返す
+	*/
+	get lastModified(){
+		const config = weakmap.get(this);
+		return new Date(config.lastModified);
+	}
 }
 
 
@@ -178,12 +191,34 @@ function save(instance){
 		}
 
 		config.saved = true;
-		const arr_output = [...instance.entries()];
+		const contents = [...instance.entries()];
 		browser.storage[config.type].set({
-			[config.name]: arr_output
+			[config.name]: {
+				contents,
+				lastModified: Date.now()
+			}
 		});
 	}, 0);
 }
+
+
+/*
+	旧仕様のstorage実体を現仕様に変換して返す
+		引数
+			1: array
+		返り値
+			object {
+				contents: array
+				lastModified: number // UTC経過ms
+			}
+*/
+function legacyConvert(contents){
+	return {
+		contents,
+		lastModified: Date.now()
+	}
+}
+
 
 return MapStorage;
 }()); // 衝突回避
