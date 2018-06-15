@@ -9,13 +9,18 @@ const MapStorage = (function(){
 /*
 	Var
 
-		_method: Map#methodへの参照
-		options_default: 標準設定
-		weakmap {
+		_method: function, Map#methodへの参照
+			instance.method() としてMap#methodを使おうとすると
+			これを継承した他モジュールに上書きされていた場合に機能不全になる
+		options_default: object, 標準設定
+		weakmap_config: WeakMapインスタンス {
 			...MapStorageインスタンス: {
+				lastModified: number, 最終更新時のDate.now()返り値
+				listener_bind: function, インスタンスでbind済みのlistener関数
 				name: "instance名",
 				saved: boolean, 変更後に実体へ書込み済みか
-				type: string, browser.storage.type
+				type: string, browser.storage.type,
+				random: number, インスタンス生成時に実行したMath.random()の返り値
 			}
 		}
 */
@@ -27,7 +32,7 @@ const _set = Map.prototype.set;
 const options_default = {
 	type: 'local'
 }
-const weakmap = new WeakMap(); // instance: configObject{}
+const weakmap_config = new WeakMap(); // instance: configObject{}
 
 
 /*
@@ -49,14 +54,21 @@ class MapStorage extends Map {
 		if( typeof name!=='string' ){
 			throw new TypeError('Invalid arguments');
 		}
+
 		super();
-		const options = Object.assign({}, options_default, _options);
-		const type = options.type;
+		const {type} = Object.assign({}, options_default, _options);
+		const listener_bind = listener.bind(this);
+
+		// storage種類に応じてイベント設定
+		if( getStorageType(type)==='storage API' ){
+			browser.storage.onChanged.addListener(listener_bind);
+		}
+
 
 		return browser.storage[type].get({
 			[name]: []
 		}).then( async (obj)=>{
-			// storageから読み込み、配列ならv~1.0.1までの仕様なら変換してから渡す
+			// storageから読み込み、旧仕様の配列なら変換してから渡す
 			const {contents, lastModified} = Array.isArray(obj[name]) ?
 				legacyConvert(obj[name]):
 				obj[name];
@@ -65,9 +77,11 @@ class MapStorage extends Map {
 				Map.prototype.set.call(this, key, value);
 			});
 			// configObject
-			weakmap.set(this, {
+			weakmap_config.set(this, {
 				lastModified,
+				listener_bind,
 				name,
+				random: Math.random(),
 				saved: true,
 				type
 			});
@@ -90,23 +104,21 @@ class MapStorage extends Map {
 	*/
 	clear(){
 		_clear.call(this);
+		sync.call(this, 'clear');
 		save(this);
 	}
 
 
 	/*
-		Map#delete + 削除後のstorage書込み
-			あれば削除してstorage書込み
-			なければスルー
+		Map#delete + 削除に成功すればstorage実体に書込み
 	*/
 	delete(key){
-		if( _has.call(this, key) ){
-			_delete.call(this, key);
+		const bool = _delete.call(this, key);
+		if( bool ){
+			sync.call(this, 'delete', [key]);
 			save(this);
-			return true;
-		}else{
-			return false;
 		}
+		return bool;
 	}
 
 
@@ -131,6 +143,7 @@ class MapStorage extends Map {
 		// なければ追加して終了
 		if( !_has.call(this, key) ){
 			_set.call(this, key, value);
+			sync.call(this, 'set', [key, value]);
 			save(this);
 			return this;
 		}
@@ -141,11 +154,13 @@ class MapStorage extends Map {
 			const str_newValue = JSON.stringify(value);
 			if( str_oldValue!==str_newValue ){
 				_set.call(this, key, value);
+				sync.call(this, 'set', [key, value]);
 				save(this);
 			}
 		}else{
 			if( value_old!==value ){
 				_set.call(this, key, value);
+				sync.call(this, 'set', [key, value]);
 				save(this);
 			}
 		}
@@ -161,7 +176,7 @@ class MapStorage extends Map {
 					storage使用byte量の数値を引数に解决する。
 	*/
 	async bytes(){
-		const config = weakmap.get(this);
+		const config = weakmap_config.get(this);
 		return browser.storage[config.type].getBytesInUse(config.name);
 	}
 
@@ -170,7 +185,7 @@ class MapStorage extends Map {
 		最終更新時のDateインスタンスを返す
 	*/
 	get lastModified(){
-		const config = weakmap.get(this);
+		const config = weakmap_config.get(this);
 		return new Date(config.lastModified);
 	}
 }
@@ -183,8 +198,9 @@ class MapStorage extends Map {
 		内容の変更時はこれを実行しとけばOK.
 */
 function save(instance){
-	const config = weakmap.get(instance);
+	const config = weakmap_config.get(instance);
 	config.saved = false;
+
 	setTimeout( ()=>{
 		if( config.saved ){
 			return;
@@ -195,10 +211,33 @@ function save(instance){
 		browser.storage[config.type].set({
 			[config.name]: {
 				contents,
-				lastModified: Date.now()
+				lastModified: config.lastModified
 			}
 		});
 	}, 0);
+}
+
+
+/*
+	同期用
+		自身の値を変更したらインスタンスをthisに実行する
+		ついでにlastModifiedを更新する。
+
+		引数
+			1: string
+				変更した際のmethod名
+			2: op, any
+				変更した値
+		返り値
+			なし
+*/
+function sync(method, args){
+	const config = weakmap_config.get(this);
+	config.lastModified = Date.now();
+
+	browser.storage.local.set({
+		'map-storage': Object.assign({method, args}, config)
+	});
 }
 
 
@@ -217,6 +256,71 @@ function legacyConvert(contents){
 		contents,
 		lastModified: Date.now()
 	}
+}
+
+
+/*
+	Storage名に対するStorage種類を返す
+		引数
+			1: string
+		返り値
+			string
+*/
+function getStorageType(string){
+	return /^(local|sync|managed)$/.test(string) ?
+		'storage API':
+			/^(local|session)Storage$/.test(string) ?
+				'WebStorage':
+				undefined;
+}
+
+
+/*
+	同期用
+		インスタンスをthisとしてbindして使う。
+		Schemeか型チェックライブラリですっきり書きたいが
+*/
+function listener(obj, type){
+	// 別Storageのイベントなら終了
+	const storage = obj['map-storage'];
+	if( !storage ){
+		return;
+	}
+
+	// 関係ないイベントだったら終了
+	const isRemoveEvent = !storage.newValue;
+	if( isRemoveEvent || type!=='local'){
+		return;
+	}
+
+	const data = storage.newValue;
+	const config = weakmap_config.get(this);
+
+	// 自身の出したイベントなら削除して終了
+	if( data.random===config.random ){
+		browser.storage.local.remove('map-storage');
+		return;
+	}
+
+	// それ以外なら自身に反映
+	switch(data.method){
+		case 'clear': {
+			_clear.call(this);
+			break;
+		}
+		case 'set': {
+			_set.call(this, ...data.args);
+			break;
+		}
+		case 'delete': {
+			_delete.call(this, ...data.args);
+			break;
+		}
+		default: {
+			throw new Error(`Invalid method: ${data.method}`);
+		}
+	}
+	config.lastModified = Date.now();
 }
 
 

@@ -2,13 +2,26 @@
 
 いわゆる製作メモ。
 
+
+## TODO
+* Sync解除メソッドの実装
+	- bind済みlistenerを解除してメモリリーク回避
+* WebStorageにも対応したい。
+    - 同期はBroadCastChannelでいいかな。
+* download
+	- 中身をDLする
+		- Exportではない（要するに日付propなどは入らない）
+	- 拡張はbrowser.download, WebStorage時はblobでやる？
+
 ## コンセプト
 * Map APIで拡張機能のStorage APIを扱う。
-* 同期処理単位でまとめて自動保存する。
+* 自動で永続化する
+	- 同期処理単位でまとめて保存する。
 
 
-## storage保存内容
+## 実装について
 
+### storage保存内容
 ```js
 /*
 	v1.0.2～
@@ -33,6 +46,28 @@ object {
 	...[key, value]
 ]
 ```
+
+
+### 他コンテキストとの通信・同期
+同じStorage実体から複数のインスタンスを利用した場合、更新の競合で内容に齟齬が出るのを防ぐ。
+ContentScriptsの制限に紆余曲折してStorageイベントによる実装に落ち着いた。
+* DB内容の変更時、以下の内容で実Storageへ書き込む
+```js
+await browser.storage.local.set({
+	'map-storage': {
+		method: 'methodName', // set, delete, clearなど
+		type: 'storageType', // Storage実体の種類、local, syncなど
+		args: [..any] // methodに引数として渡した値の配列
+		random: number // config.random (インスタンス生成時に実行したMath.random()の返り値)
+	}
+});
+```
+* storage APIのlistenerで上記の書き込みよって発生したイベントを補足する
+	- 自身とrandomの値が違えば、自身に反映する
+		- 実体には反映しない。
+	    - 通常の MapStorage#method() を使うとループするから別口でやる。
+	- 自身とrandomの値が同じなら、storage実体から上記を削除する。
+
 
 
 ## ファイル構成

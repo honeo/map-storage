@@ -31,19 +31,18 @@ ChromeExtensionsでは別途[mozilla/webextension-polyfill](https://github.com/m
 	// example: Background page
 	"background": {
 		"page": "background.html"
-	}
+	},
+
+	"permissions": [
+		"storage",
+		"unlimitedStorage", // or
+	]
 }
 ```
 ```html
 <!-- example: background.html -->
 <script src="./map-storage.js"></script>
 <script src="./background.js"></script>
-```
-```js
-// example: CDN, Dynamic import
-const MapStorage = await import('https://cdn.rawgit.com/honeo/map-storage/master/map-storage.mjs').then( (mod)=>{
-	return mod.default;
-});
 ```
 global.MapStorageから扱う。
 ```js
@@ -58,6 +57,11 @@ const mapstorage = await new MapStorage('foobar');
 
 mapstorage.get('key'); // {value: true}
 ```
+あるいは
+```js
+// example: CDN, Dynamic import
+const {default: MapStorage} = await import('https://cdn.rawgit.com/honeo/map-storage/master/map-storage.mjs');
+```
 
 
 ## API
@@ -65,6 +69,7 @@ mapstorage.get('key'); // {value: true}
 
 ### MapStorage(name [, options])
 引数1文字列の名でインスタンスを作成する。  
+既に同名のStorage実体があれば内容を読み込む。  
 インスタンスを引数に解决するpromiseを返す。
 ```js
 const mapstorage = await new MapStorage('hoge');
