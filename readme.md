@@ -5,7 +5,10 @@
 
 ## なにこれ
 WebExtensionsのstorageをMap APIで扱う。  
-自動で永続化する。  
+* 自動同期
+	- 同じstorage実体から生成したインスタンス間で同期する。
+* 自動永続化
+	- よしなにstorage実体へ永続化する。
 
 
 ## 使い方
@@ -64,8 +67,10 @@ const {default: MapStorage} = await import('https://cdn.rawgit.com/honeo/map-sto
 ```
 
 
+
 ## API
 [Map - JavaScript | MDN](https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Map)を継承している。
+
 
 ### MapStorage(name [, options])
 引数1文字列の名でインスタンスを作成する。  
@@ -86,6 +91,22 @@ Storage実体の使用量を数値で取得する。
 取得した数値を引数に解决するpromiseを返す。
 ```js
 const number = await mapstorage.bytes();
+```
+
+
+### MapStorage#disconnect()
+同じStorage実体から生成されたインスタンス間の同期を終了する。  
+同期の終了後に解決するpromiseを返す。  
+__＊同期中のインスタンスはGCの対象にならない__
+```js
+const bool = await mapstorage.disconnect();
+```
+
+
+### MapStorage#toJSON()
+自身の内容をオブジェクトで返す。
+```js
+const obj = mapstorage.toJSON();
 ```
 
 

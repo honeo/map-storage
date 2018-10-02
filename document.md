@@ -3,22 +3,6 @@
 いわゆる製作メモ。
 
 
-## TODO
-* Sync解除メソッドの実装
-	- bind済みlistenerを解除してメモリリーク回避
-* WebStorageにも対応したい。
-    - 同期はBroadCastChannelでいいかな。
-* download
-	- 中身をDLする
-		- Exportではない（要するに日付propなどは入らない）
-	- 拡張はbrowser.download, WebStorage時はblobでやる？
-
-## コンセプト
-* Map APIで拡張機能のStorage APIを扱う。
-* 自動で永続化する
-	- 同期処理単位でまとめて保存する。
-
-
 ## 実装について
 
 ### storage保存内容
@@ -46,6 +30,9 @@ object {
 	...[key, value]
 ]
 ```
+
+### storage保存タイミング
+適当に setTimeout(,0) で同期処理単位でまとめる。
 
 
 ### 他コンテキストとの通信・同期

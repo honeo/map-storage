@@ -123,6 +123,45 @@ class MapStorage extends Map {
 
 
 	/*
+		同期終了
+			listenerのthisを拘束しているため、これを踏まないとGCされない。
+			後々何かを待ってから終了扱いにしたくなったときを考えてpromiseを返している。
+
+			引数
+				なし
+			返り値
+				promise
+					終了後に解決する
+	*/
+	async disconnect(){
+		const config = weakmap_config.get(this);
+		// storage種類に応じてイベント解除
+		if( getStorageType(config.type)==='storage API' ){
+			browser.storage.onChanged.removeListener(config.listener_bind);
+			config.listener_bind = null;
+		}
+	}
+
+
+	/*
+		移行用
+			自身の内容をオブジェクトで返す。
+
+			引数
+				なし
+			返り値
+				object{..key:value}
+	*/
+	toJSON(){
+		const obj = {}
+		for(let [key, value] of this){
+			obj[key] = value;
+		}
+		return obj;
+	}
+
+
+	/*
 		Map#setとの違い
 			同内容時のSkip
 				現在の値と新しい値が違えば上書き
@@ -236,7 +275,7 @@ function sync(method, args){
 	config.lastModified = Date.now();
 
 	browser.storage.local.set({
-		'map-storage': Object.assign({method, args}, config)
+		'_map-storage-sync': Object.assign({method, args}, config)
 	});
 }
 
@@ -282,7 +321,7 @@ function getStorageType(string){
 */
 function listener(obj, type){
 	// 別Storageのイベントなら終了
-	const storage = obj['map-storage'];
+	const storage = obj['_map-storage-sync'];
 	if( !storage ){
 		return;
 	}
@@ -298,7 +337,7 @@ function listener(obj, type){
 
 	// 自身の出したイベントなら削除して終了
 	if( data.random===config.random ){
-		browser.storage.local.remove('map-storage');
+		browser.storage.local.remove('_map-storage-sync');
 		return;
 	}
 
