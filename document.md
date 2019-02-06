@@ -32,7 +32,8 @@ object {
 ```
 
 ### storage保存タイミング
-適当に setTimeout(,0) で同期処理単位でまとめる。
+適当に setTimeout() でまとめる。
+options.saveIntervalで指定できる。
 
 
 ### 他コンテキストとの通信・同期

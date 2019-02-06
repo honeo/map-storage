@@ -28,7 +28,8 @@ const _get = Map.prototype.get;
 const _has = Map.prototype.has;
 const _set = Map.prototype.set;
 const options_default = {
-	type: 'local'
+	type: 'local',
+	saveInterval: 0
 }
 const weakmap_config = new WeakMap(); // instance: configObject{}
 
@@ -54,7 +55,7 @@ class MapStorage extends Map {
 		}
 
 		super();
-		const {type} = Object.assign({}, options_default, _options);
+		const {type, saveInterval} = Object.assign({}, options_default, _options);
 		const listener_bind = listener.bind(this);
 
 		// storage種類に応じてイベント設定
@@ -81,6 +82,7 @@ class MapStorage extends Map {
 				name,
 				random: Math.random(),
 				saved: true,
+				saveInterval,
 				type
 			});
 			return this;
@@ -251,7 +253,7 @@ function save(instance){
 				lastModified: config.lastModified
 			}
 		});
-	}, 0);
+	}, config.saveInterval);
 }
 
 

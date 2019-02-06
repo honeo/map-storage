@@ -81,6 +81,7 @@ const mapstorage = await new MapStorage('hoge');
 
 // options
 const mapstorage = await new MapStorage('fuga', {
+	saveInterval: 0, // 実体に保存する間隔
 	type: 'local' // or sync, managed
 });
 ```
