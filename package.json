@@ -2,7 +2,7 @@
   "name": "map-storage",
   "version": "1.4.0",
   "description": "拡張機能storageをMap APIで扱う",
-  "main": "index.js",
+  "main": "map-storage.mjs",
   "scripts": {},
   "author": "honeo",
   "license": "MIT",
