@@ -1,6 +1,6 @@
 {
   "name": "map-storage",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "拡張機能storageをMap APIで扱う",
   "main": "map-storage.mjs",
   "scripts": {},
