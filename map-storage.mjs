@@ -160,14 +160,9 @@ class MapStorage extends Map {
 		return obj;
 	}
 
-
 	/*
 		Map#setとの違い
-			同内容時のSkip
-				現在の値と新しい値が違えば上書き
-				同じならスルー
 			保存後のstorage書込み
-				上記上書き時に関数呼ぶだけ
 
 			引数
 				1: any
@@ -179,30 +174,9 @@ class MapStorage extends Map {
 					本家Map#setに倣っている。
 	*/
 	set(key, value){
-		// なければ追加して終了
-		if( !_has.call(this, key) ){
-			_set.call(this, key, value);
-			sync.call(this, 'set', [key, value]);
-			save(this);
-			return this;
-		}
-
-		const value_old = _get.call(this, key);
-		if( typeof value_old==='object' ){
-			const str_oldValue = JSON.stringify(value_old);
-			const str_newValue = JSON.stringify(value);
-			if( str_oldValue!==str_newValue ){
-				_set.call(this, key, value);
-				sync.call(this, 'set', [key, value]);
-				save(this);
-			}
-		}else{
-			if( value_old!==value ){
-				_set.call(this, key, value);
-				sync.call(this, 'set', [key, value]);
-				save(this);
-			}
-		}
+		_set.call(this, key, value);
+		sync.call(this, 'set', [key, value]);
+		save(this);
 		return this;
 	}
 
