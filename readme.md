@@ -62,12 +62,12 @@ mapstorage.get('key'); // {value: true}
 ```
 あるいは
 ```js
-// example: CDN, Dynamic import
-const {default: MapStorage} = await import('https://cdn.rawgit.com/honeo/map-storage/master/map-storage.mjs');
-```
-```js
 // for Bundle
 import MapStorage from 'map-storage';
+
+
+// Dynamic import & CDN
+const {default: MapStorage} = await import('https://rawcdn.githack.com/honeo/map-storage/d519a64e613e0f9a594745a468a2d19a992a3ddd/map-storage.mjs');
 ```
 
 
